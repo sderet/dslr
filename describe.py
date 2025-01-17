@@ -64,13 +64,7 @@ def give_percentiles(names, file_content, percentile):
         sorted_content = list(filter(lambda line: (line[name] != ""), sorted_content))
         length = len(sorted_content)
 
-        ## TODO: fix this here so it's actually consistent
-        # issue is, taking length as is, it'll reach index 1600, which doesn't exist
-        # we want to find indexes inbetween 0 and 1599
-        # however, if left as is, percentile 0 is gonna be index 0, and percentile 1 is gonna be index 1600
-        # doing length-1 doesn't work because then, sure, it'll be between 0 and 1599, but 1/4 is 399.75
-        # doing index-1 doesn't work because then, index 0 becomes index -1
-        index = length * percentile
+        index = (length - 1) * percentile
 
         print(index)
 
