@@ -34,7 +34,7 @@ def give_means(names, file_content):
         try:
             means[name] = total / index
         except TypeError:
-            means[name] = "NaN"
+            means[name] = 0
             
     return (means)
 
@@ -53,20 +53,24 @@ def give_standard_deviations(names, file_content, means):
         try:
             std[name] = math.sqrt(total / index)
         except TypeError:
-            std[name] = "NaN"
+            std[name] = 0
 
     return (std)
+
+def float_or_zero(value):
+    try:
+        return (float(value))
+    except ValueError:
+        return (0)
 
 def give_percentiles(names, file_content, percentile):
     percentiles = {}
     for name in names:
-        sorted_content = sorted(file_content, key=lambda line: line[name])
+        sorted_content = sorted(file_content, key=lambda line: float_or_zero(line[name]))
         sorted_content = list(filter(lambda line: (line[name] != ""), sorted_content))
         length = len(sorted_content)
 
         index = (length - 1) * percentile
-
-        print(index)
 
         try: 
             try:
@@ -76,10 +80,22 @@ def give_percentiles(names, file_content, percentile):
                 ceiling = math.ceil(index)
                 percentiles[name] = (float(sorted_content[floor][name]) + float(sorted_content[ceiling][name])) / 2
         except ValueError:
-            percentiles[name] = "NaN"
+            percentiles[name] = 0
     
     return (percentiles)
+
+def describe(described_data):
+    print(f'{'': <8}', end='')
+    for column_key in described_data["Count"].keys():
+        print(f'{column_key[:13]: >15}', end='')
     
+    print('')
+
+    for line_key in described_data.keys():
+        print(f'{line_key: <8}', end='')
+        for column_key in described_data[line_key].keys():
+            print(f'{f"{described_data[line_key][column_key]: .5f}"[:13]: >15}', end='')
+        print('')
 
 def main():
     fd = open(sys.argv[1], "r")
@@ -111,9 +127,7 @@ def main():
     described_data["75%"] = give_percentiles(names, file_content, 0.75)
     described_data["Max"] = give_percentiles(names, file_content, 1)
 
-    print(described_data)
-
     # Describe function simply prints the data inside described_data, but nicely
-    #describe(described_data)
+    describe(described_data)
 
 main()
