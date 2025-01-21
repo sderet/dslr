@@ -1,5 +1,6 @@
 import sys
 import math
+import argparse
 
 def dictionary_from_line(names, line):
     dict_line = {}
@@ -34,7 +35,7 @@ def give_means(names, file_content):
         try:
             means[name] = total / index
         except TypeError:
-            means[name] = 0
+            means[name] = "N/A"
             
     return (means)
 
@@ -53,7 +54,7 @@ def give_standard_deviations(names, file_content, means):
         try:
             std[name] = math.sqrt(total / index)
         except TypeError:
-            std[name] = 0
+            std[name] = "N/A"
 
     return (std)
 
@@ -80,26 +81,35 @@ def give_percentiles(names, file_content, percentile):
                 ceiling = math.ceil(index)
                 percentiles[name] = (float(sorted_content[floor][name]) + float(sorted_content[ceiling][name])) / 2
         except ValueError:
-            percentiles[name] = 0
+            percentiles[name] = "N/A"
     
     return (percentiles)
 
 def describe(described_data):
     print(f'{'': <8}', end='')
     for column_key in described_data["Count"].keys():
-        print(f'{column_key[:13]: >15}', end='')
+        print(f'{column_key[:10]: >12}', end='')
     
     print('')
 
     for line_key in described_data.keys():
         print(f'{line_key: <8}', end='')
         for column_key in described_data[line_key].keys():
-            print(f'{f"{described_data[line_key][column_key]: .5f}"[:13]: >15}', end='')
+            if (described_data[line_key][column_key] != "N/A"):
+                print(f'{f"{described_data[line_key][column_key]: .5f}"[:10]: >12}', end='')
+            else:
+                print(f'{'N/A': >12}', end='')
         print('')
 
-def main():
-    fd = open(sys.argv[1], "r")
-    content = fd.read()
+def open_and_describe(filename, to_print):
+    
+    try:
+        with open(filename, 'r') as fd:
+            content = fd.read()
+    except FileNotFoundError:
+        print(f"{filename}: File not found.")
+        return {}
+
     lines = content.split("\n")
 
     # Array of dict
@@ -107,27 +117,42 @@ def main():
     # Array of the keys in file_content
     names = lines[0].split(",")
 
+    # Remove first and last elements
+    # First is the name of columns, last is empty (assuming the file ends in \n)
+    del lines[0]
+    if (len(lines[-1]) < 1):
+        del lines[-1]
+
     for line in lines:
         file_content.append(dictionary_from_line(names, line.split(",")))
 
-    # Remove first and last elements
-    # First is the name of columns, last is empty (assuming the file ends in \n)
-    del file_content[0]
-    del file_content[-1]
-
     # Dict of dicts
     described_data = {}
-    
-    described_data["Count"] = give_counts(names, file_content)
-    described_data["Mean"] = give_means(names, file_content)
-    described_data["Std"] = give_standard_deviations(names, file_content, described_data["Mean"])
-    described_data["Min"] = give_percentiles(names, file_content, 0)
-    described_data["25%"] = give_percentiles(names, file_content, 0.25)
-    described_data["50%"] = give_percentiles(names, file_content, 0.5)
-    described_data["75%"] = give_percentiles(names, file_content, 0.75)
-    described_data["Max"] = give_percentiles(names, file_content, 1)
 
-    # Describe function simply prints the data inside described_data, but nicely
-    describe(described_data)
+    try:
+        described_data["Count"] = give_counts(names, file_content)
+        described_data["Mean"] = give_means(names, file_content)
+        described_data["Std"] = give_standard_deviations(names, file_content, described_data["Mean"])
+        described_data["Min"] = give_percentiles(names, file_content, 0)
+        described_data["25%"] = give_percentiles(names, file_content, 0.25)
+        described_data["50%"] = give_percentiles(names, file_content, 0.5)
+        described_data["75%"] = give_percentiles(names, file_content, 0.75)
+        described_data["Max"] = give_percentiles(names, file_content, 1)
 
-main()
+    except Exception:
+        print("Error parsing the file.")
+        return {}
+
+    if (to_print == True):
+        # Describe function simply prints the data inside described_data, but nicely
+        describe(described_data)
+
+    return (described_data)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("file", help="The file in .csv format to describe")
+
+    args = parser.parse_args()
+
+    open_and_describe(args.file, True)
