@@ -85,7 +85,7 @@ def give_percentiles(names, file_content, percentile):
     
     return (percentiles)
 
-def describe(described_data):
+def print_describe(described_data):
     print(f'{'': <8}', end='')
     for column_key in described_data["Count"].keys():
         print(f'{column_key[:10]: >12}', end='')
@@ -101,31 +101,7 @@ def describe(described_data):
                 print(f'{'N/A': >12}', end='')
         print('')
 
-def open_and_describe(filename, to_print):
-    
-    try:
-        with open(filename, 'r') as fd:
-            content = fd.read()
-    except FileNotFoundError:
-        print(f"{filename}: File not found.")
-        return {}
-
-    lines = content.split("\n")
-
-    # Array of dict
-    file_content = []
-    # Array of the keys in file_content
-    names = lines[0].split(",")
-
-    # Remove first and last elements
-    # First is the name of columns, last is empty (assuming the file ends in \n)
-    del lines[0]
-    if (len(lines[-1]) < 1):
-        del lines[-1]
-
-    for line in lines:
-        file_content.append(dictionary_from_line(names, line.split(",")))
-
+def describe(names, file_content, to_print):
     # Dict of dicts
     described_data = {}
 
@@ -145,9 +121,35 @@ def open_and_describe(filename, to_print):
 
     if (to_print == True):
         # Describe function simply prints the data inside described_data, but nicely
-        describe(described_data)
+        print_describe(described_data)
 
     return (described_data)
+
+def open_file(filename):
+    try:
+        with open(filename, 'r') as fd:
+            content = fd.read()
+    except FileNotFoundError:
+        print(f"{filename}: File not found.")
+        return False, False
+
+    lines = content.split("\n")
+
+    # Array of dict
+    file_content = []
+    # Array of the keys in file_content
+    names = lines[0].split(",")
+
+    # Remove first and last elements
+    # First is the name of columns, last is empty (assuming the file ends in \n)
+    del lines[0]
+    if (len(lines[-1]) < 1):
+        del lines[-1]
+
+    for line in lines:
+        file_content.append(dictionary_from_line(names, line.split(",")))
+
+    return names, file_content, lines
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -155,4 +157,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    open_and_describe(args.file, True)
+    names, file_content, lines = open_file(args.file)
+
+    if (names and file_content):
+        describe(names, file_content, True)
