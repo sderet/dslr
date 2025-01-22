@@ -20,7 +20,7 @@ def give_counts(names, file_content):
                 counts[name] += 1
     return (counts)
 
-def give_means(names, file_content):
+def give_means(names, file_content, counts):
     means = {}
     for name in names:
         total = 0
@@ -33,26 +33,26 @@ def give_means(names, file_content):
                     break
         
         try:
-            means[name] = total / index
+            means[name] = total / counts[name]
         except TypeError:
             means[name] = "N/A"
             
     return (means)
 
-def give_standard_deviations(names, file_content, means):
+def give_standard_deviations(names, file_content, means, counts):
     std = {}
     for name in names:
         total = 0
-        for index, line in enumerate(file_content):
+        for line in file_content:
             if (name in line and line[name]):
                 try:
                     total += pow((float(line[name]) - means[name]), 2)
                 except ValueError:
                     total = "NaN"
                     break
-        
+
         try:
-            std[name] = math.sqrt(total / index)
+            std[name] = math.sqrt(total / counts[name])
         except TypeError:
             std[name] = "N/A"
 
@@ -62,16 +62,15 @@ def float_or_zero(value):
     try:
         return (float(value))
     except ValueError:
-        return (0)
+        return 0
 
-def give_percentiles(names, file_content, percentile):
+def give_percentiles(names, file_content, percentile, counts):
     percentiles = {}
     for name in names:
-        sorted_content = sorted(file_content, key=lambda line: float_or_zero(line[name]))
-        sorted_content = list(filter(lambda line: (line[name] != ""), sorted_content))
-        length = len(sorted_content)
+        sorted_content = list(filter(lambda line: (line[name] != ""), file_content))
+        sorted_content = sorted(sorted_content, key=lambda line: float_or_zero(line[name]))
 
-        index = (length - 1) * percentile
+        index = (counts[name] - 1) * percentile
 
         try: 
             try:
@@ -79,14 +78,14 @@ def give_percentiles(names, file_content, percentile):
             except TypeError:
                 floor = math.floor(index)
                 ceiling = math.ceil(index)
-                percentiles[name] = (float(sorted_content[floor][name]) + float(sorted_content[ceiling][name])) / 2
+                percentiles[name] = (float(sorted_content[floor][name]) * (ceiling - index)) + (float(sorted_content[ceiling][name]) * (index - floor))
         except ValueError:
             percentiles[name] = "N/A"
     
     return (percentiles)
 
 def print_describe(described_data):
-    print(f'{'': <8}', end='')
+    print(f'{"": <8}', end='')
     for column_key in described_data["Count"].keys():
         print(f'{column_key[:10]: >12}', end='')
     
@@ -98,7 +97,7 @@ def print_describe(described_data):
             if (described_data[line_key][column_key] != "N/A"):
                 print(f'{f"{described_data[line_key][column_key]: .5f}"[:10]: >12}', end='')
             else:
-                print(f'{'N/A': >12}', end='')
+                print(f'{"N/A": >12}', end='')
         print('')
 
 def describe(names, file_content, to_print):
@@ -107,13 +106,13 @@ def describe(names, file_content, to_print):
 
     try:
         described_data["Count"] = give_counts(names, file_content)
-        described_data["Mean"] = give_means(names, file_content)
-        described_data["Std"] = give_standard_deviations(names, file_content, described_data["Mean"])
-        described_data["Min"] = give_percentiles(names, file_content, 0)
-        described_data["25%"] = give_percentiles(names, file_content, 0.25)
-        described_data["50%"] = give_percentiles(names, file_content, 0.5)
-        described_data["75%"] = give_percentiles(names, file_content, 0.75)
-        described_data["Max"] = give_percentiles(names, file_content, 1)
+        described_data["Mean"] = give_means(names, file_content, described_data["Count"])
+        described_data["Std"] = give_standard_deviations(names, file_content, described_data["Mean"], described_data["Count"])
+        described_data["Min"] = give_percentiles(names, file_content, 0, described_data["Count"])
+        described_data["25%"] = give_percentiles(names, file_content, 0.25, described_data["Count"])
+        described_data["50%"] = give_percentiles(names, file_content, 0.5, described_data["Count"])
+        described_data["75%"] = give_percentiles(names, file_content, 0.75, described_data["Count"])
+        described_data["Max"] = give_percentiles(names, file_content, 1, described_data["Count"])
 
     except Exception:
         print("Error parsing the file.")
@@ -131,7 +130,7 @@ def open_file(filename):
             content = fd.read()
     except FileNotFoundError:
         print(f"{filename}: File not found.")
-        return False, False
+        return False, False, False
 
     lines = content.split("\n")
 
