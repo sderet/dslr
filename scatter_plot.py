@@ -25,12 +25,6 @@ def trim_data(names, split_lines):
 
 def scatter_plot():
     names, file_content, lines = describe.open_file(sys.argv[1])
-    raw_values = []
-
-    for line in lines:
-        split_line = line.split(",")
-        if (split_line[1]):
-            raw_values.append(split_line)
 
     split_lines = []
     for line in lines:
