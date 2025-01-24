@@ -45,12 +45,11 @@ def main(file_to_test, weights_file, dest_file="houses.csv", verbose=False):
     full_data = np.array(split_lines)
     # Delete all fields that don't have numerical values (name, dominant hand, etc...)
     full_data = np.delete(full_data, [0, 1, 2, 3, 4, 5], 1)
-    # Make any field with missing data 0, which isn't ideal but necessary (?)
+    # Make any field with missing data 0, which isn't ideal but necessary
     full_data[full_data == ''] = 0
     full_data = np.array(full_data, dtype=float)
     # Normalize data between 0 and 10
-    # This is because values going too high can be very complicated to compute (especially with exponentials)
-    # and can cause trouble with the sigmoid function
+    # This is because values get normalized before training
     full_data = (full_data - full_data.min(0)) / (np.ptp(full_data, axis=0) / 10)
         
     weights = {}
