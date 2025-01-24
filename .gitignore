@@ -1,4 +1,7 @@
 datasets
+
+houses.csv
+*.lgr
+
 venv
-wslvenv
 __pycache__
