@@ -71,7 +71,7 @@ def give_percentiles(names, file_content, percentile, counts):
 
         index = (counts[name] - 1) * percentile
 
-        try: 
+        try:
             try:
                 percentiles[name] = float(sorted_content[index][name])
             except TypeError:
@@ -115,7 +115,7 @@ def describe(names, file_content, to_print):
 
     except Exception:
         print("Error parsing the file.")
-        return {}
+        exit()
 
     if (to_print == True):
         # Describe function simply prints the data inside described_data, but nicely
@@ -129,7 +129,7 @@ def open_file(filename):
             content = fd.read()
     except FileNotFoundError:
         print(f"{filename}: File not found.")
-        return False, False, False
+        exit()
 
     lines = content.split("\n")
 
@@ -138,11 +138,15 @@ def open_file(filename):
     # Array of the keys in file_content
     names = lines[0].split(",")
 
-    # Remove first and last elements
-    # First is the name of columns, last is empty (assuming the file ends in \n)
-    del lines[0]
-    if (len(lines[-1]) < 1):
-        del lines[-1]
+    try: 
+        # Remove first and last elements
+        # First is the name of columns, last is empty (assuming the file ends in \n)
+        del lines[0]
+        if (len(lines[-1]) < 1):
+            del lines[-1]
+    except IndexError:
+        print("File is not a properly formatted csv")
+        exit()
 
     for line in lines:
         file_content.append(dictionary_from_line(names, line.split(",")))

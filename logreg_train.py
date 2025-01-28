@@ -1,6 +1,6 @@
 import numpy as np
 import describe
-import sys
+import argparse
 
 class LogisticRegression:
     def __init__(self, learning_rate, n_iters):
@@ -63,17 +63,37 @@ class LogisticRegression:
             self.weights -= self.learning_rate * dw
             self.bias -= self.learning_rate * db
 
-    # Returns a prediction for each sample between 0 and 1
-    def predict(self, X):
-        y_hat = np.dot(X, self.weights) + self.bias
-        y_predicted = self.sigmoid(y_hat)
-        #y_predicted_cls = [1 if i > 0.5 else 0 for i in y_predicted]
-        
-        return np.array(y_predicted)
+
+def get_mean_per_house(house_name, data, houses):
+    means = []
+    is_nan = np.isnan(data)
+
+    for column in range(len(data[0])):
+        total = 0
+        count = 0
+        for index, line in enumerate(data):
+            if (houses[index] == house_name and not is_nan[index][column] and line[column] and line[column] != np.nan):
+                try:
+                    total += float(line[column])
+                    count += 1
+                except ValueError:
+                    total = "NaN"
+                    break
+        try:
+            means.append(total / count)
+        except TypeError:
+            means.append(np.nan)
+            
+    return (means)
 
 
-if __name__ == "__main__":
-    names, file_content, lines = describe.open_file(sys.argv[1])
+def main(file_to_train, dest_file="weights.lgr", verbose=False):
+    dest_file = "weights.lgr" if dest_file is None else dest_file
+
+    names, file_content, lines = describe.open_file(file_to_train)
+
+    if not lines:
+        exit()
 
     split_lines = []
     for line in lines:
@@ -86,19 +106,27 @@ if __name__ == "__main__":
     actual_houses = full_data[:, 1]
 
     # Delete all fields that don't have numerical values (name, dominant hand, etc...)
-    full_data = np.delete(full_data, [0, 1, 2, 3, 4, 5], 1)
-    # Make any field with missing data 0, which isn't ideal but necessary (?)
-    full_data[full_data == ''] = 0
+    full_data = np.delete(full_data, [0, 1, 2, 3, 4, 5, 15, 16], 1)
+
+    # Here we set unknown values to the mean of their respective features among their own house
+    full_data[full_data == ''] = np.nan
+    full_data = np.array(full_data, dtype=float)
+    for house_name in houses_names:
+        # Get the column means for the specific house
+        col_mean = get_mean_per_house(house_name, full_data, actual_houses)
+        # Find the indices of NaNs
+        inds = np.where(np.isnan(full_data))
+        # Replace them with the mean
+        full_data[inds] = np.take(col_mean, inds[1])
+
     full_data = np.array(full_data, dtype=float)
     # Normalize data between 0 and 10
     # This is because values going too high can be very complicated to compute (especially with exponentials)
     # and can cause trouble with the sigmoid function
     full_data = (full_data - full_data.min(0)) / (np.ptp(full_data, axis=0) / 10)
 
-    predictions_list = []
-
     # Delete current contents of file
-    open("weights.lgr", "w").close()
+    open(dest_file, "w").close()
 
     # Test each house in one-vs-all
     for house_name in houses_names:
@@ -109,14 +137,27 @@ if __name__ == "__main__":
         houses[houses != '1'] = 0
         houses = np.array(houses, dtype=float)
 
-        regressor = LogisticRegression(learning_rate=0.0001, n_iters=10000)
+        regressor = LogisticRegression(learning_rate=0.001, n_iters=10000)
         regressor.fit(full_data, houses)
 
         # Write to file
         # Format:
         # house, bias, [weights (comma-separated)]
-        with open("weights.lgr", "a") as f:
+        with open(dest_file, "a") as f:
             f.write(f'{house_name},{regressor.bias},{','.join(map(str, regressor.weights))}\n')
+        if (verbose):
+            print(f'Training done for {house_name}')
 
-    print(f'Weights and bias have been written to weights.lgr.')
+    print(f'Weights and bias have been written to weights.lgr')
 
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("file_to_train", help="the file in .csv format to train off of")
+    parser.add_argument("-d", "--destination", default="weights.lgr", help="the destination file to create containing the weights and biases")
+    parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
+
+    args = parser.parse_args()
+
+    main(args.file_to_train, args.destination, args.verbose)

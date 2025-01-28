@@ -1,5 +1,6 @@
 datasets
 
+compare.py
 houses.csv
 *.lgr
 

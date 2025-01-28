@@ -1,4 +1,4 @@
-import sys
+import argparse
 import matplotlib.pyplot as pyplot
 import describe
 
@@ -23,8 +23,8 @@ def trim_data(names, split_lines):
     
     return features_values, final_names
 
-def scatter_plot():
-    names, file_content, lines = describe.open_file(sys.argv[1])
+def scatter_plot(filename):
+    names, file_content, lines = describe.open_file(filename)
     raw_values = {
         "Ravenclaw": [],
         "Slytherin": [],
@@ -51,7 +51,8 @@ def scatter_plot():
     for index_first in range(len(raw_names)):
         for index in range(len(raw_names)):
             if (index_first == index):
-                axes[index, index].annotate(raw_names[index], (0.5, 0.5), xycoords='axes fraction',
+                # Cut on character 15 so it doesn't get outside the box
+                axes[index, index].annotate('\n'.join([raw_names[index][:15], raw_names[index][15:]]), (0.5, 0.5), xycoords='axes fraction',
                     ha='center', va='center')
             else:
                 for key in raw_values.keys():
@@ -64,4 +65,16 @@ def scatter_plot():
     pyplot.show()
 
 if __name__ == "__main__":
-    scatter_plot()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("file", help="the file in .csv format to display a scatter plot for")
+    parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
+
+    args = parser.parse_args()
+
+    try:
+        scatter_plot(args.file)
+    except Exception as e:
+        if (args.verbose):
+            print(f"{e}: invalid file formatting.")
+        else:
+            print(f"Invalid file formatting.")

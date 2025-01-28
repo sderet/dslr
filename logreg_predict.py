@@ -1,6 +1,5 @@
 import numpy as np
 import describe
-import sys
 import argparse
 
 # Given a number X (which represents log(odds)), returns a value in between 0 and 1 which represents the probability
@@ -26,6 +25,29 @@ def open_weights_file(weights_file):
     
     return content.split('\n')
 
+def get_mean(data):
+    means = []
+    is_nan = np.isnan(data)
+
+    for column in range(len(data[0])):
+        total = 0
+        count = 0
+        for index, line in enumerate(data):
+            if (not is_nan[index][column] and line[column] and line[column] != np.nan):
+                try:
+                    total += float(line[column])
+                    count += 1
+                except ValueError:
+                    total = "NaN"
+                    break
+        try:
+            means.append(total / count)
+        except TypeError:
+            means.append(np.nan)
+            
+    return (means)
+
+
 def main(file_to_test, weights_file, dest_file="houses.csv", verbose=False):
     dest_file = "houses.csv" if dest_file is None else dest_file
 
@@ -44,9 +66,19 @@ def main(file_to_test, weights_file, dest_file="houses.csv", verbose=False):
 
     full_data = np.array(split_lines)
     # Delete all fields that don't have numerical values (name, dominant hand, etc...)
-    full_data = np.delete(full_data, [0, 1, 2, 3, 4, 5], 1)
-    # Make any field with missing data 0, which isn't ideal but necessary
-    full_data[full_data == ''] = 0
+    full_data = np.delete(full_data, [0, 1, 2, 3, 4, 5, 15, 16], 1)
+
+    # Here we set unknown values to the mean of their respective features among their own house
+    full_data[full_data == ''] = np.nan
+    full_data = np.array(full_data, dtype=float)
+    # Get the column means for the specific house
+    col_mean = get_mean(full_data)
+    # Find the indices of NaNs
+    inds = np.where(np.isnan(full_data))
+    # Replace them with the mean
+    full_data[inds] = np.take(col_mean, inds[1])
+
+
     full_data = np.array(full_data, dtype=float)
     # Normalize data between 0 and 10
     # This is because values get normalized before training
@@ -85,7 +117,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("file_to_test", help="the file in .csv format to predict values for")
     parser.add_argument("weights_file", help="the file in .lgr containing weights and biases")
-    parser.add_argument("-d", "--destination", help="the destination file for the predicted values")
+    parser.add_argument("-d", "--destination", default="houses.csv", help="the destination file for the predicted values")
     parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
 
     args = parser.parse_args()
