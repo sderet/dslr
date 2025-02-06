@@ -144,7 +144,7 @@ def main(file_to_train, dest_file="weights.lgr", verbose=False):
         # Format:
         # house, bias, [weights (comma-separated)]
         with open(dest_file, "a") as f:
-            f.write(f'{house_name},{regressor.bias},{','.join(map(str, regressor.weights))}\n')
+            f.write(f'{house_name},{regressor.bias},{",".join(map(str, regressor.weights))}\n')
         if (verbose):
             print(f'Training done for {house_name}')
 
