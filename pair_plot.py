@@ -1,5 +1,6 @@
 import argparse
 import matplotlib.pyplot as pyplot
+import matplotlib.patheffects as pe
 import describe
 
 def trim_data(names, split_lines):
@@ -23,7 +24,7 @@ def trim_data(names, split_lines):
     
     return features_values, final_names
 
-def scatter_plot(filename):
+def scatter_plot(filename, verbose=False, fast=False):
     names, file_content, lines = describe.open_file(filename)
     raw_values = {
         "Ravenclaw": [],
@@ -48,12 +49,17 @@ def scatter_plot(filename):
         ax.xaxis.set_visible(False)
         ax.yaxis.set_visible(False)
 
+    legend_values = []
+
     for index_first in range(len(raw_names)):
         for index in range(len(raw_names)):
             if (index_first == index):
+                if not fast:
+                    for key in raw_values.keys():
+                        axes[index_first, index].hist(raw_values[key][index_first], bins="auto", alpha=0.5)
                 # Cut on character 15 so it doesn't get outside the box
                 axes[index, index].annotate('\n'.join([raw_names[index][:15], raw_names[index][15:]]), (0.5, 0.5), xycoords='axes fraction',
-                    ha='center', va='center')
+                    ha='center', va='center', path_effects=[pe.withStroke(linewidth=2, foreground="white")])
             else:
                 for key in raw_values.keys():
                     axes[index_first, index].scatter(
@@ -61,18 +67,23 @@ def scatter_plot(filename):
                         raw_values[key][index][:len(raw_values[key][index_first])],
                         s=0.1)
 
-    pyplot.subplots_adjust(wspace=0.01, hspace=0.01, left=0, right=1, top=1, bottom=0)
+        if (verbose):
+            print(f'Finished drawing plots for {raw_names[index_first]}.')
+            
+    figure.legend(raw_values.keys(), loc='outside right upper')
+    pyplot.subplots_adjust(wspace=0.01, hspace=0.01, left=0, right=0.9, top=1, bottom=0)
     pyplot.show()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("file", help="the file in .csv format to display a scatter plot for")
+    parser.add_argument("-f", "--fast", help="do not display histograms", action="store_true")
     parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
 
     args = parser.parse_args()
 
     try:
-        scatter_plot(args.file)
+        scatter_plot(args.file, args.verbose, args.fast)
     except Exception as e:
         if (args.verbose):
             print(f"{e}: invalid file formatting.")

@@ -51,7 +51,7 @@ def histogram(filename):
         pyplot.hist(features_values[index], bins="auto", alpha=0.5, label=key)
 
     pyplot.legend(loc='upper right')
-    pyplot.title(f'{final_names[index]} scores across all houses')
+    pyplot.title(f'Number of students (Y) by {final_names[index]} scores (X)')
     pyplot.show()
 
 
